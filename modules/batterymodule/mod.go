@@ -20,11 +20,10 @@ func New() *BatteryModule {
 			w, err := Get()
 			if err != nil {
 				log.Println(err)
-				time.Sleep(time.Second * 10)
 			} else {
 				output <- []byte(w.String())
-				time.Sleep(time.Minute * 10)
 			}
+			time.Sleep(time.Second * 5)
 		}
 	}()
 
@@ -53,7 +52,7 @@ func Get() (b Battery, err error) {
 	}
 
 	return Battery{
-		Charging: string(stat) == "Charging",
+		Charging: strings.TrimSpace(string(stat)) == "Charging",
 		Capacity: value,
 	}, nil
 }
