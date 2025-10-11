@@ -14,16 +14,55 @@ type BatteryModule struct {
 }
 
 func New() *BatteryModule {
-	output := make(chan []byte)
+	output := make(chan []byte, 10)
 	go func() {
+
+		udevCh := UdevPowerSupplyEventsThrottled(time.Second)
+
+		old, err := Get()
+		if err != nil {
+			log.Fatal(err)
+		}
+		output <- []byte(old.String(false))
+
 		for {
-			w, err := Get()
-			if err != nil {
-				log.Println(err)
-			} else {
-				output <- []byte(w.String())
+
+			select {
+			case <-udevCh:
+			case <-time.After(time.Second * 60):
 			}
-			time.Sleep(time.Second * 5)
+
+			new, err := Get()
+
+			switch {
+			case err != nil:
+				log.Println(err)
+				continue
+			case old.Capacity != new.Capacity:
+				flash := false
+				for range 5 {
+					flash = !flash
+					output <- []byte(new.String(flash))
+					time.Sleep(time.Millisecond * 200)
+				}
+			case old.Charging != new.Charging:
+				flash := false
+				for range 5 {
+					flash = !flash
+					output <- []byte(new.String(flash))
+					time.Sleep(time.Millisecond * 200)
+				}
+			case new.Capacity < 25:
+				flash := false
+				for range 5 {
+					flash = !flash
+					output <- []byte(new.String(flash))
+					time.Sleep(time.Millisecond * 200)
+				}
+			}
+
+			output <- []byte(new.String(false))
+			old = new
 		}
 	}()
 

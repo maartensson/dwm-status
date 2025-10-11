@@ -12,7 +12,7 @@
       pname = "dwm-status";
       version = "0.0.1";
       src = ./.;
-      vendorHash = "sha256-Q0nrU39JrWfcQCsBONB6JE3K8pqzoJRxL81rgVpvhQQ=";
+      vendorHash = "sha256-GXLUqP0n1QoXuBZs/0mPQhqNG7YJJhEg5R+g3CTEfcc=";
     };
 
     apps.default = {

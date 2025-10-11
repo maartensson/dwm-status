@@ -7,12 +7,24 @@ type Battery struct {
 	Capacity int
 }
 
-func (b Battery) String() string {
-	if b.Charging {
-		return fmt.Sprintf(" ⚡ %d ", b.Capacity)
-	} else if b.Capacity < 50 {
-		return fmt.Sprintf(" 🪫 %d ", b.Capacity)
+//⚡, 🔌, 🔋⚡, 🔋🔌
+
+func (b Battery) String(flash bool) string {
+	if flash {
+		if b.Charging {
+			return fmt.Sprintf(" 🔌 %d%% ", b.Capacity)
+		} else if b.Capacity < 25 {
+			return fmt.Sprintf(" 💀 %d%%", b.Capacity)
+		} else {
+			return fmt.Sprintf(" 💡 %d%% ", b.Capacity)
+		}
 	} else {
-		return fmt.Sprintf(" 🔋 %d ", b.Capacity)
+		if b.Charging {
+			return fmt.Sprintf(" ⚡ %d%% ", b.Capacity)
+		} else if b.Capacity < 25 {
+			return fmt.Sprintf(" 🪫 %d%% ", b.Capacity)
+		} else {
+			return fmt.Sprintf(" 🔋 %d%% ", b.Capacity)
+		}
 	}
 }
