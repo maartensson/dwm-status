@@ -36,8 +36,6 @@
             RestartSec = "5s";
             Type = "simple";
           };
-          environment = {
-          };
         };
       };
     };
