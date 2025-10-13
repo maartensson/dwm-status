@@ -25,40 +25,38 @@ func New() *BatteryModule {
 		}
 		output <- []byte(old.String(false))
 
+		duration := time.Minute
 		for {
 
 			select {
 			case <-udevCh:
-			case <-time.After(time.Second * 60):
+			case <-time.After(duration):
 			}
 
 			new, err := Get()
-
-			switch {
-			case err != nil:
+			if err != nil {
 				log.Println(err)
 				continue
-			case old.Capacity != new.Capacity:
+			}
+
+			if old.Capacity != new.Capacity || old.Charging != new.Charging {
 				flash := false
-				for range 5 {
+				for range 10 {
 					flash = !flash
 					output <- []byte(new.String(flash))
 					time.Sleep(time.Millisecond * 200)
 				}
-			case old.Charging != new.Charging:
+			}
+			if !new.Charging && new.Capacity < 25 {
 				flash := false
-				for range 5 {
+				for range 50 {
 					flash = !flash
 					output <- []byte(new.String(flash))
 					time.Sleep(time.Millisecond * 200)
 				}
-			case new.Capacity < 25:
-				flash := false
-				for range 5 {
-					flash = !flash
-					output <- []byte(new.String(flash))
-					time.Sleep(time.Millisecond * 200)
-				}
+				duration = time.Second * 5
+			} else {
+				duration = time.Minute
 			}
 
 			output <- []byte(new.String(false))
