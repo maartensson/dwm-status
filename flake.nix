@@ -35,13 +35,24 @@
             Restart = "always";
             RestartSec = "5s";
             Type = "simple";
-            AmbientCapabilities = "CAP_NET_ADMIN";
-            #ProtectSystem = "strict";
-            #ProtectHome = true;
-            #ProtectKernelModules = true;
-            #NoNewPrivileges = true;   
-            #MemoryMax = 50M;
-            #CPUQuota = 50%;
+
+            # Use dynamic, unprivileged user
+            User = "statusbar";
+            Group = "statusbar";
+
+            # Give only the capabilities you need
+            AmbientCapabilities = [ "CAP_NET_ADMIN" "CAP_NET_RAW" ];
+            CapabilityBoundingSet = [ "CAP_NET_ADMIN" "CAP_NET_RAW" ];
+
+            # Protect the service
+            NoNewPrivileges = true;
+            PrivateTmp = true;
+            ProtectSystem = "strict";
+            ProtectHome = true;
+            ProtectKernelModules = true;
+            ProtectKernelTunables = true;
+            PrivateDevices = true;
+            RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" ];
           };
         };
       };

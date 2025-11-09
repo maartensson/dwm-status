@@ -20,7 +20,7 @@ func Run(
 	state := make(chan []byte)
 
 	go func() {
-		chunks := make([]string, 8)
+		chunks := make([]string, 9)
 		for {
 			select {
 			case data := <-vpn:
