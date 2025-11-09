@@ -33,10 +33,24 @@
           serviceConfig = {
             ExecStart = "${self.packages.${pkgs.system}.default}/bin/wg";
             Restart = "always";
-            Type = "simple";
+
+             # Where the socket goes (shared for everyone)
+            RuntimeDirectory = "wg-helper";
+            RuntimeDirectoryMode = "0777";           Type = "simple";
+
             DynamicUser = true;
             AmbientCapabilities = [ "CAP_NET_ADMIN" "CAP_NET_RAW" ];
             CapabilityBoundingSet = [ "CAP_NET_ADMIN" "CAP_NET_RAW" ];
+            NoNewPrivileges = false;
+
+            # Optional hardening
+            PrivateTmp = true;
+            ProtectSystem = "strict";
+            ProtectHome = true;
+
+            Environment = [
+              "SOCKET_PATH=/run/wg-helper/wg-helper.sock"
+            ];
           };
         };
         systemd.user.services.statusbar = {
@@ -48,6 +62,9 @@
             Restart = "always";
             RestartSec = "5s";
             Type = "simple";
+            Environment = [
+              "SOCKET_PATH=/run/wg-helper/wg-helper.sock"
+            ];
           };
         };
       };

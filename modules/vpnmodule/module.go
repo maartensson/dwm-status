@@ -27,11 +27,11 @@ type NetModule struct {
 	lastIface    string
 }
 
-func New() *NetModule {
+func New(socketPath string) *NetModule {
 	n := &NetModule{
 		output: make(chan []byte),
 	}
-	go n.run()
+	go n.run(socketPath)
 	return n
 }
 
@@ -39,7 +39,7 @@ func (n *NetModule) Reader() <-chan []byte {
 	return n.output
 }
 
-func (n *NetModule) run() {
+func (n *NetModule) run(socketPath string) {
 
 	iface, localIp, hasInternet := n.getActiveIface()
 	if !hasInternet || iface == "" {
@@ -55,7 +55,7 @@ func (n *NetModule) run() {
 			}
 			n.lastIface = iface
 		}
-		n.output <- []byte(" " + n.buildStatus(iface) + " ")
+		n.output <- []byte(" " + n.buildStatus(socketPath, iface) + " ")
 	}
 	for range time.NewTicker(2 * time.Second).C {
 		iface, localIp, hasInternet := n.getActiveIface()
@@ -75,7 +75,7 @@ func (n *NetModule) run() {
 			n.lastIface = iface
 		}
 
-		n.output <- []byte(" " + n.buildStatus(iface) + " ")
+		n.output <- []byte(" " + n.buildStatus(socketPath, iface) + " ")
 	}
 }
 
@@ -114,14 +114,14 @@ func (n *NetModule) getActiveIface() (ifaceName string, localIP net.IP, hasInter
 	return ifaceName, localIP, ifaceName != ""
 }
 
-func (n *NetModule) buildStatus(iface string) string {
+func (n *NetModule) buildStatus(socketPath string, iface string) string {
 	stats, err := readTotalBytes(iface)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "readTotalBytes error:", err)
 		return fmt.Sprintf(" %s", iface)
 	}
 
-	vpnActive := isVPNActive(iface)
+	vpnActive := isVPNActive(socketPath, iface)
 	flag := getCountry(n.cachedIP)
 
 	emoji := ""
@@ -217,8 +217,8 @@ func getPublicIP(localIP net.IP) (string, error) {
 	return string(ip), err
 }
 
-func isVPNActive(iface string) bool {
-	wgDevices, err := getWireGuardDevices()
+func isVPNActive(socketPath string, iface string) bool {
+	wgDevices, err := getWireGuardDevices(socketPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "WireGuard error:", err)
 		return false
@@ -231,8 +231,7 @@ type Response struct {
 	Error   string   `json:"error,omitempty"`
 }
 
-func getWireGuardDevices() ([]string, error) {
-	socketPath := "/run/wg-helper.sock"
+func getWireGuardDevices(socketPath string) ([]string, error) {
 	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
 		return nil, err

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"time"
 
 	"github.com/mamaart/statusbar/internal/api"
@@ -16,6 +17,11 @@ import (
 )
 
 func main() {
+	socketPath := os.Getenv("SOCKET_PATH")
+	if socketPath == "" {
+		socketPath = "/run/wg-helper/wg-helper.sock"
+	}
+
 	api := api.New()
 	tim := timemodule.New()
 	txt := textmodule.New(textmodule.Options{
@@ -26,7 +32,7 @@ func main() {
 	go api.Run(tim, txt)
 
 	ui.Run([]ui.Module{
-		vpnmodule.New(),
+		vpnmodule.New(socketPath),
 		netmodule.New(),
 		diskmodule.New(),
 		brightnessmodule.New(),

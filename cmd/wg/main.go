@@ -32,7 +32,10 @@ func getWireGuardDevices() ([]string, error) {
 }
 
 func main() {
-	socketPath := "/run/wg-helper.sock"
+	socketPath := os.Getenv("SOCKET_PATH")
+	if socketPath == "" {
+		socketPath = "/run/wg-helper/wg-helper.sock"
+	}
 
 	// Remove existing socket
 	os.Remove(socketPath)
