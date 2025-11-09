@@ -9,7 +9,6 @@ import (
 	"github.com/mamaart/statusbar/modules/batterymodule"
 	"github.com/mamaart/statusbar/modules/brightnessmodule"
 	"github.com/mamaart/statusbar/modules/diskmodule"
-	"github.com/mamaart/statusbar/modules/netmodule"
 	"github.com/mamaart/statusbar/modules/textmodule"
 	"github.com/mamaart/statusbar/modules/timemodule"
 	"github.com/mamaart/statusbar/modules/volumemodule"
@@ -33,7 +32,6 @@ func main() {
 
 	ui.Run([]ui.Module{
 		vpnmodule.New(socketPath),
-		netmodule.New(),
 		diskmodule.New(),
 		brightnessmodule.New(),
 		volumemodule.New(),
