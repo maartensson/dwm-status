@@ -26,7 +26,7 @@
       };
 
       config = lib.mkIf config.services.statusbar.enable {
-        systemd.services.statusbar = {
+        systemd.user.services.statusbar = {
           description = "DWM statusbar";
           wantedBy = ["default.target"];
           after = ["graphical-session.target"];
@@ -36,7 +36,6 @@
             RestartSec = "5s";
             Type = "simple";
 
-            DynamicUser = true;
             AmbientCapabilities = [ "CAP_NET_ADMIN" "CAP_NET_RAW" ];
             CapabilityBoundingSet = [ "CAP_NET_ADMIN" "CAP_NET_RAW" ];
           };
