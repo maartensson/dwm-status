@@ -1,47 +1,37 @@
 package ui
 
 import (
+	"reflect"
 	"strings"
 
 	"github.com/mamaart/statusbar/pkg/bar"
 )
 
+type Module interface {
+	Reader() <-chan []byte
+}
+
 func Run(
-	vpn <-chan []byte,
-	tim <-chan []byte,
-	bat <-chan []byte,
-	vol <-chan []byte,
-	bri <-chan []byte,
-	wtr <-chan []byte,
-	net <-chan []byte,
-	dsk <-chan []byte,
-	txt <-chan []byte,
+	modules []Module,
 ) {
 	state := make(chan []byte)
-
 	go func() {
-		chunks := make([]string, 9)
-		for {
-			select {
-			case data := <-vpn:
-				chunks[0] = string(data)
-			case data := <-tim:
-				chunks[1] = string(data)
-			case data := <-bat:
-				chunks[2] = string(data)
-			case data := <-vol:
-				chunks[3] = string(data)
-			case data := <-bri:
-				chunks[4] = string(data)
-			case data := <-wtr:
-				chunks[5] = string(data)
-			case data := <-net:
-				chunks[6] = string(data)
-			case data := <-dsk:
-				chunks[7] = string(data)
-			case data := <-txt:
-				chunks[8] = string(data)
+		chunks := make([]string, len(modules))
+
+		cases := make([]reflect.SelectCase, len(modules))
+		for i, module := range modules {
+			cases[i] = reflect.SelectCase{
+				Dir:  reflect.SelectRecv,
+				Chan: reflect.ValueOf(module.Reader()),
 			}
+		}
+
+		for {
+			chosen, value, ok := reflect.Select(cases)
+			if !ok {
+				continue
+			}
+			chunks[chosen] = string(value.Bytes())
 			state <- []byte(strings.Join(chunks, "|"))
 		}
 	}()

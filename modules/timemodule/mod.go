@@ -18,7 +18,8 @@ func New() *TimeModule {
 	toggle := make(chan struct{})
 	go func() {
 		state := watchface.Clock
-		output <- []byte(Clock(time.Now().Format("15:04")).String())
+		t := time.Now()
+		output <- []byte(Clock(t.Format(fmt.Sprintf(" %s 15:04", getClockIcon(t)))).String())
 		for {
 			t := time.Now()
 			select {
@@ -41,7 +42,7 @@ func New() *TimeModule {
 			case <-time.After(time.Second * 5):
 				switch state {
 				case watchface.Clock:
-					output <- []byte(Clock(t.Format("15:04")).String())
+					output <- []byte(Clock(t.Format(fmt.Sprintf(" %s 15:04", getClockIcon(t)))).String())
 				case watchface.Date:
 					output <- []byte(Calendar(t.Format("02 Jan 2006")).String())
 				case watchface.Weeknumber:

@@ -8,5 +8,5 @@ type IFace struct {
 }
 
 func (f IFace) String() string {
-	return fmt.Sprintf(" 📡 %s ", f.Addr)
+	return fmt.Sprintf(" 󰌗 %s ", f.Addr)
 }

@@ -40,10 +40,27 @@ func (n *NetModule) Reader() <-chan []byte {
 }
 
 func (n *NetModule) run() {
+
+	iface, localIp, hasInternet := n.getActiveIface()
+	if !hasInternet || iface == "" {
+		n.output <- []byte(" No internet ")
+	} else {
+		if iface != n.lastIface || time.Since(n.ipLastUpdate) > time.Hour {
+			ip, err := getPublicIP(localIp)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "getPublicIP:", err)
+			} else {
+				n.cachedIP = ip
+				n.ipLastUpdate = time.Now()
+			}
+			n.lastIface = iface
+		}
+		n.output <- []byte(" " + n.buildStatus(iface) + " ")
+	}
 	for range time.NewTicker(2 * time.Second).C {
 		iface, localIp, hasInternet := n.getActiveIface()
 		if !hasInternet || iface == "" {
-			n.output <- []byte("🚫 No internet")
+			n.output <- []byte(" No internet ")
 			continue
 		}
 
@@ -58,7 +75,7 @@ func (n *NetModule) run() {
 			n.lastIface = iface
 		}
 
-		n.output <- []byte(n.buildStatus(iface))
+		n.output <- []byte(" " + n.buildStatus(iface) + " ")
 	}
 }
 
@@ -101,18 +118,18 @@ func (n *NetModule) buildStatus(iface string) string {
 	stats, err := readTotalBytes(iface)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "readTotalBytes error:", err)
-		return fmt.Sprintf("❌ %s", iface)
+		return fmt.Sprintf(" %s", iface)
 	}
 
 	vpnActive := isVPNActive(iface)
-	flag := getCountryFlag(n.cachedIP)
+	flag := getCountry(n.cachedIP)
 
-	emoji := "🌍"
+	emoji := ""
 	if vpnActive {
-		emoji = "🛡️"
+		emoji = "󰒃"
 	}
 
-	return fmt.Sprintf("%s %s (%s) ↓%s ↑%s", emoji, flag, iface,
+	return fmt.Sprintf("%s %s (%s)  %s  %s", emoji, flag, iface,
 		humanizeBytes(stats.RxBytes), humanizeBytes(stats.TxBytes))
 }
 
@@ -133,19 +150,7 @@ func humanizeBytes(b uint64) string {
 	return fmt.Sprintf("%.1f%s", val, suffix)
 }
 
-func countryFlag(iso string) string {
-	iso = strings.ToUpper(iso)
-	if len(iso) != 2 {
-		return "??"
-	}
-	runes := []rune{}
-	for _, c := range iso {
-		runes = append(runes, rune(0x1F1E6+(c-'A')))
-	}
-	return string(runes)
-}
-
-func getCountryFlag(ipStr string) string {
+func getCountry(ipStr string) string {
 	ip := net.ParseIP(ipStr)
 	if ip == nil {
 		return "??"
@@ -160,7 +165,7 @@ func getCountryFlag(ipStr string) string {
 		fmt.Fprintln(os.Stderr, "geo.GetCountry error:", err)
 		return "??"
 	}
-	return countryFlag(c.ISOCode)
+	return c.ISOCode
 }
 
 func readTotalBytes(iface string) (NetStats, error) {
