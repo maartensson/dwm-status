@@ -36,20 +36,8 @@
             RestartSec = "5s";
             Type = "simple";
 
-
-            # Give only the capabilities you need
             AmbientCapabilities = [ "CAP_NET_ADMIN" "CAP_NET_RAW" ];
             CapabilityBoundingSet = [ "CAP_NET_ADMIN" "CAP_NET_RAW" ];
-
-            # Protect the service
-            NoNewPrivileges = true;
-            PrivateTmp = true;
-            ProtectSystem = "strict";
-            ProtectHome = true;
-            ProtectKernelModules = true;
-            ProtectKernelTunables = true;
-            PrivateDevices = true;
-            RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" ];
           };
         };
       };
