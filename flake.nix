@@ -36,9 +36,6 @@
             RestartSec = "5s";
             Type = "simple";
 
-            # Use dynamic, unprivileged user
-            User = "statusbar";
-            Group = "statusbar";
 
             # Give only the capabilities you need
             AmbientCapabilities = [ "CAP_NET_ADMIN" "CAP_NET_RAW" ];
