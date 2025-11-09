@@ -1,1 +1,1 @@
-git add . && git commit -m update && git push && cd ../dwm-nix && git flake update && git add ./flake.nix && git commit -m update && cd ../dotfiles && nix flake update && sudo nixos-rebuild switch --flake .
+git add . && git commit -m update && git push && cd ../dwm-nix && nix flake update && git add ./flake.nix && git commit -m update && cd ../dotfiles && nix flake update && sudo nixos-rebuild switch --flake .
