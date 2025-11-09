@@ -42,7 +42,7 @@ func main() {
 		log.Fatal("listen error:", err)
 	}
 	defer l.Close()
-	os.Chmod(socketPath, 0660) // allow user access via group if needed
+	os.Chmod(socketPath, 0666) // allow user access via group if needed
 
 	log.Println("WireGuard helper listening on", socketPath)
 

@@ -34,6 +34,7 @@
             ExecStart = "${self.packages.${pkgs.system}.default}/bin/wg";
             Restart = "always";
             Type = "simple";
+            DynamicUser = true;
             AmbientCapabilities = [ "CAP_NET_ADMIN" "CAP_NET_RAW" ];
             CapabilityBoundingSet = [ "CAP_NET_ADMIN" "CAP_NET_RAW" ];
           };
