@@ -7,6 +7,7 @@ import (
 )
 
 func Run(
+	vpn <-chan []byte,
 	tim <-chan []byte,
 	bat <-chan []byte,
 	vol <-chan []byte,
@@ -22,22 +23,24 @@ func Run(
 		chunks := make([]string, 8)
 		for {
 			select {
-			case data := <-tim:
+			case data := <-vpn:
 				chunks[0] = string(data)
-			case data := <-bat:
+			case data := <-tim:
 				chunks[1] = string(data)
-			case data := <-vol:
+			case data := <-bat:
 				chunks[2] = string(data)
-			case data := <-bri:
+			case data := <-vol:
 				chunks[3] = string(data)
-			case data := <-wtr:
+			case data := <-bri:
 				chunks[4] = string(data)
-			case data := <-net:
+			case data := <-wtr:
 				chunks[5] = string(data)
-			case data := <-dsk:
+			case data := <-net:
 				chunks[6] = string(data)
-			case data := <-txt:
+			case data := <-dsk:
 				chunks[7] = string(data)
+			case data := <-txt:
+				chunks[8] = string(data)
 			}
 			state <- []byte(strings.Join(chunks, "|"))
 		}

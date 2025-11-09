@@ -12,6 +12,7 @@ import (
 	"github.com/mamaart/statusbar/modules/textmodule"
 	"github.com/mamaart/statusbar/modules/timemodule"
 	"github.com/mamaart/statusbar/modules/volumemodule"
+	"github.com/mamaart/statusbar/modules/vpnmodule"
 	"github.com/mamaart/statusbar/modules/wttrmodule"
 )
 
@@ -26,6 +27,7 @@ func main() {
 		wtr = wttrmodule.New()
 		net = netmodule.New()
 		dsk = diskmodule.New()
+		vpn = vpnmodule.New()
 		txt = textmodule.New(textmodule.Options{
 			WindowWidth: 80,
 			Delay:       time.Millisecond * 150,
@@ -35,6 +37,7 @@ func main() {
 	go api.Run(tim, txt)
 
 	ui.Run(
+		vpn.Reader(),
 		net.Reader(),
 		dsk.Reader(),
 		bri.Reader(),

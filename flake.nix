@@ -12,7 +12,7 @@
       pname = "dwm-status";
       version = "0.0.1";
       src = ./.;
-      vendorHash = "sha256-GXLUqP0n1QoXuBZs/0mPQhqNG7YJJhEg5R+g3CTEfcc=";
+      vendorHash = "";
     };
 
     apps.default = {
@@ -35,6 +35,13 @@
             Restart = "always";
             RestartSec = "5s";
             Type = "simple";
+            AmbientCapabilities = "CAP_NET_ADMIN";
+            #ProtectSystem = "strict";
+            #ProtectHome = true;
+            #ProtectKernelModules = true;
+            #NoNewPrivileges = true;   
+            #MemoryMax = 50M;
+            #CPUQuota = 50%;
           };
         };
       };
