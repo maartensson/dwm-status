@@ -2,6 +2,7 @@ package vpnmodule
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -12,7 +13,6 @@ import (
 	"time"
 
 	"github.com/mamaart/statusbar/pkg/geoip"
-	"golang.zx2c4.com/wireguard/wgctrl"
 )
 
 type NetStats struct {
@@ -217,23 +217,6 @@ func getPublicIP(localIP net.IP) (string, error) {
 	return string(ip), err
 }
 
-func getWireGuardDevices() ([]string, error) {
-	client, err := wgctrl.New()
-	if err != nil {
-		return nil, err
-	}
-	defer client.Close()
-	devices, err := client.Devices()
-	if err != nil {
-		return nil, err
-	}
-	names := []string{}
-	for _, d := range devices {
-		names = append(names, d.Name)
-	}
-	return names, nil
-}
-
 func isVPNActive(iface string) bool {
 	wgDevices, err := getWireGuardDevices()
 	if err != nil {
@@ -241,4 +224,27 @@ func isVPNActive(iface string) bool {
 		return false
 	}
 	return slices.Contains(wgDevices, iface)
+}
+
+type Response struct {
+	Devices []string `json:"devices"`
+	Error   string   `json:"error,omitempty"`
+}
+
+func getWireGuardDevices() ([]string, error) {
+	socketPath := "/run/wg-helper.sock"
+	conn, err := net.Dial("unix", socketPath)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	var resp Response
+	if err := json.NewDecoder(conn).Decode(&resp); err != nil {
+		return nil, err
+	}
+	if resp.Error != "" {
+		return nil, fmt.Errorf("%s", resp.Error)
+	}
+	return resp.Devices, nil
 }

@@ -26,6 +26,18 @@
       };
 
       config = lib.mkIf config.services.statusbar.enable {
+
+        systemd.services.wg-helper = {
+          description = "WireGuard helper service";
+          after = [ "network.target" ];
+          serviceConfig = {
+            ExecStart = "${self.packages.${pkgs.system}.default}/bin/wg-helper";
+            Restart = "always";
+            Type = "simple";
+            AmbientCapabilities = [ "CAP_NET_ADMIN" "CAP_NET_RAW" ];
+            CapabilityBoundingSet = [ "CAP_NET_ADMIN" "CAP_NET_RAW" ];
+          };
+        };
         systemd.user.services.statusbar = {
           description = "DWM statusbar";
           wantedBy = ["default.target"];
@@ -35,9 +47,6 @@
             Restart = "always";
             RestartSec = "5s";
             Type = "simple";
-
-            AmbientCapabilities = [ "CAP_NET_ADMIN" "CAP_NET_RAW" ];
-            CapabilityBoundingSet = [ "CAP_NET_ADMIN" "CAP_NET_RAW" ];
           };
         };
       };
