@@ -31,7 +31,7 @@
           description = "WireGuard helper service";
           after = [ "network.target" ];
           serviceConfig = {
-            ExecStart = "${self.packages.${pkgs.system}.default}/bin/wg-helper";
+            ExecStart = "${self.packages.${pkgs.system}.default}/bin/wg";
             Restart = "always";
             Type = "simple";
             AmbientCapabilities = [ "CAP_NET_ADMIN" "CAP_NET_RAW" ];
