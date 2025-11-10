@@ -1,72 +1,104 @@
 package main
 
 import (
-	"encoding/json"
+	"fmt"
 	"log"
 	"net"
 	"os"
+	"strings"
 
+	"github.com/vishvananda/netlink"
 	"golang.zx2c4.com/wireguard/wgctrl"
 )
 
-type Response struct {
-	Devices []string `json:"devices"`
-	Error   string   `json:"error,omitempty"`
+func toggleInterface(name string) (string, error) {
+	link, err := netlink.LinkByName(name)
+	if err != nil {
+		return "", err
+	}
+	if link.Attrs().Flags&net.FlagUp != 0 {
+		netlink.LinkSetDown(link)
+		return fmt.Sprintf("Interface %s brought down", name), nil
+	} else {
+		netlink.LinkSetUp(link)
+		return fmt.Sprintf("Interface %s brought up", name), nil
+	}
 }
 
-func getWireGuardDevices() ([]string, error) {
+func listInterfaces() ([]string, error) {
 	client, err := wgctrl.New()
 	if err != nil {
 		return nil, err
 	}
 	defer client.Close()
-	devices, err := client.Devices()
+	devs, err := client.Devices()
 	if err != nil {
 		return nil, err
 	}
-	names := make([]string, 0, len(devices))
-	for _, d := range devices {
-		names = append(names, d.Name)
+	names := make([]string, len(devs))
+	for i, d := range devs {
+		names[i] = d.Name
 	}
 	return names, nil
 }
 
 func main() {
-	socketPath := os.Getenv("SOCKET_PATH")
-	if socketPath == "" {
-		socketPath = "/run/wg-helper/wg-helper.sock"
+	addr := "127.0.0.1:9999"
+	if a := os.Getenv("WG_HELPER_ADDR"); a != "" {
+		addr = a
 	}
 
-	// Remove existing socket
-	os.Remove(socketPath)
-
-	l, err := net.Listen("unix", socketPath)
+	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
-		log.Fatal("listen error:", err)
+		log.Fatal(err)
 	}
-	defer l.Close()
-	os.Chmod(socketPath, 0666) // allow user access via group if needed
 
-	log.Println("WireGuard helper listening on", socketPath)
+	conn, err := net.ListenUDP("udp", udpAddr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
 
+	log.Println("WireGuard UDP helper listening on", addr)
+
+	buf := make([]byte, 1024)
 	for {
-		conn, err := l.Accept()
+		n, clientAddr, err := conn.ReadFromUDP(buf)
 		if err != nil {
-			log.Println("accept error:", err)
+			log.Println("read error:", err)
 			continue
 		}
 
-		go func(c net.Conn) {
-			defer c.Close()
+		command := strings.TrimSpace(string(buf[:n]))
+		parts := strings.Fields(command)
+		if len(parts) == 0 {
+			conn.WriteToUDP([]byte("ERROR: empty command"), clientAddr)
+			continue
+		}
 
-			devices, err := getWireGuardDevices()
-			resp := Response{Devices: devices}
+		switch parts[0] {
+		case "toggle":
+			if len(parts) < 2 {
+				conn.WriteToUDP([]byte("ERROR: missing device"), clientAddr)
+				continue
+			}
+			msg, err := toggleInterface(parts[1])
 			if err != nil {
-				resp.Error = err.Error()
+				conn.WriteToUDP([]byte("ERROR: "+err.Error()), clientAddr)
+			} else {
+				conn.WriteToUDP([]byte("OK: "+msg), clientAddr)
 			}
 
-			enc := json.NewEncoder(c)
-			enc.Encode(resp)
-		}(conn)
+		case "list":
+			devs, err := listInterfaces()
+			if err != nil {
+				conn.WriteToUDP([]byte("ERROR: "+err.Error()), clientAddr)
+			} else {
+				conn.WriteToUDP([]byte("OK: "+strings.Join(devs, " ")), clientAddr)
+			}
+
+		default:
+			conn.WriteToUDP([]byte("ERROR: unknown command "+parts[0]), clientAddr)
+		}
 	}
 }

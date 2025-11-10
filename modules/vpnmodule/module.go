@@ -2,7 +2,7 @@ package vpnmodule
 
 import (
 	"bufio"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -27,11 +27,11 @@ type NetModule struct {
 	lastIface    string
 }
 
-func New(socketPath string) *NetModule {
+func New() *NetModule {
 	n := &NetModule{
 		output: make(chan []byte),
 	}
-	go n.run(socketPath)
+	go n.run()
 	return n
 }
 
@@ -39,7 +39,7 @@ func (n *NetModule) Reader() <-chan []byte {
 	return n.output
 }
 
-func (n *NetModule) run(socketPath string) {
+func (n *NetModule) run() {
 
 	iface, localIp, hasInternet := n.getActiveIface()
 	if !hasInternet || iface == "" {
@@ -55,7 +55,7 @@ func (n *NetModule) run(socketPath string) {
 			}
 			n.lastIface = iface
 		}
-		n.output <- []byte(" " + n.buildStatus(socketPath, iface) + " ")
+		n.output <- []byte(" " + n.buildStatus(iface) + " ")
 	}
 	for range time.NewTicker(2 * time.Second).C {
 		iface, localIp, hasInternet := n.getActiveIface()
@@ -75,7 +75,7 @@ func (n *NetModule) run(socketPath string) {
 			n.lastIface = iface
 		}
 
-		n.output <- []byte(" " + n.buildStatus(socketPath, iface) + " ")
+		n.output <- []byte(" " + n.buildStatus(iface) + " ")
 	}
 }
 
@@ -114,14 +114,14 @@ func (n *NetModule) getActiveIface() (ifaceName string, localIP net.IP, hasInter
 	return ifaceName, localIP, ifaceName != ""
 }
 
-func (n *NetModule) buildStatus(socketPath string, iface string) string {
+func (n *NetModule) buildStatus(iface string) string {
 	stats, err := readTotalBytes(iface)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "readTotalBytes error:", err)
 		return fmt.Sprintf(" %s", iface)
 	}
 
-	vpnActive := isVPNActive(socketPath, iface)
+	vpnActive := isVPNActive(iface)
 	flag := getCountry(n.cachedIP)
 
 	emoji := ""
@@ -217,8 +217,8 @@ func getPublicIP(localIP net.IP) (string, error) {
 	return string(ip), err
 }
 
-func isVPNActive(socketPath string, iface string) bool {
-	wgDevices, err := getWireGuardDevices(socketPath)
+func isVPNActive(iface string) bool {
+	wgDevices, err := getWireGuardDevices()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "WireGuard error:", err)
 		return false
@@ -226,24 +226,40 @@ func isVPNActive(socketPath string, iface string) bool {
 	return slices.Contains(wgDevices, iface)
 }
 
-type Response struct {
-	Devices []string `json:"devices"`
-	Error   string   `json:"error,omitempty"`
-}
-
-func getWireGuardDevices(socketPath string) ([]string, error) {
-	conn, err := net.Dial("unix", socketPath)
+func getWireGuardDevices() ([]string, error) {
+	udpAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:9999")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("resolve error: %w", err)
+	}
+
+	conn, err := net.DialUDP("udp", nil, udpAddr)
+	if err != nil {
+		return nil, fmt.Errorf("dial error: %w", err)
 	}
 	defer conn.Close()
 
-	var resp Response
-	if err := json.NewDecoder(conn).Decode(&resp); err != nil {
-		return nil, err
+	_, err = conn.Write([]byte("list"))
+	if err != nil {
+		return nil, fmt.Errorf("write error: %w", err)
 	}
-	if resp.Error != "" {
-		return nil, fmt.Errorf("%s", resp.Error)
+
+	buf := make([]byte, 1024)
+	n, _, err := conn.ReadFromUDP(buf)
+	if err != nil {
+		return nil, fmt.Errorf("read error: %w", err)
 	}
-	return resp.Devices, nil
+
+	resp := string(buf[:n])
+
+	if strings.HasPrefix(resp, "ERROR:") {
+		return nil, errors.New(resp)
+	}
+	// Trim "OK: " prefix and split into slice
+	resp = strings.TrimPrefix(resp, "OK:")
+	resp = strings.TrimSpace(resp)
+	if resp == "" {
+		return []string{}, nil
+	}
+
+	return strings.Fields(resp), nil
 }
