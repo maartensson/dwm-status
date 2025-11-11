@@ -6,7 +6,7 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = {nixpkgs, flake-utils, ...}:
+  outputs = {self, nixpkgs, flake-utils, ...}:
   flake-utils.lib.eachDefaultSystem (system: let 
     pkgs = nixpkgs.legacyPackages.${system};
 
@@ -33,6 +33,7 @@
 
   in {
     packages.default = statusbar;
+    packages.statusbar = statusbar;
     packages.wgctl = wgctl;
 
     apps.statusbar = {
@@ -44,21 +45,23 @@
       type = "app";
       program = "${wgctl}/bin/wgctl";
     };
-
-    nixosModules.default = {config, lib, pkgs, ...}: {
+  }) // {
+    nixosModules.default = {config, lib, pkgs, ...}: let 
+      pkgs = nixpkgs.legacyPackages.${pkgs.system};
+    in {
       options.services.statusbar = {
         enable = lib.mkEnableOption "Enable dwm-statusbar";
       };
 
       config = lib.mkIf config.services.statusbar.enable {
 
-        environment.systemPackages = [ wgctl ];
+        environment.systemPackages = [ pkgs.wgctl ];
 
         systemd.services.wg-helper = {
           description = "WireGuard helper service";
           after = [ "network.target" ];
           serviceConfig = {
-            ExecStart = "${statusbar}/bin/wg";
+            ExecStart = "${pkgs.statusbar}/bin/wg";
             Restart = "always";
 
              # Where the socket goes (shared for everyone)
@@ -87,7 +90,7 @@
           wantedBy = ["default.target"];
           after = ["graphical-session.target"];
           serviceConfig = {
-            ExecStart = "${statusbar}/bin/statusbar";
+            ExecStart = "${pkgs.statusbar}/bin/statusbar";
             Restart = "always";
             RestartSec = "5s";
             Type = "simple";
@@ -98,6 +101,6 @@
         };
       };
     };
-  });
+  };
 }
 
