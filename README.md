@@ -1,5 +1,7 @@
 # 📈 Statusbar for DWM
 
+add control with phone :)
+
 dwm-status is a statusbar for dwm, written in golang. 
 
 The state of the bar can be modified in runtime over http. For instance show date instead of time or toggle text stream.
