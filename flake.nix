@@ -6,43 +6,45 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = {self, nixpkgs, flake-utils, ...}:
+  outputs = {nixpkgs, flake-utils, ...}:
   flake-utils.lib.eachDefaultSystem (system: let 
     pkgs = nixpkgs.legacyPackages.${system};
 
-    module = nixpkgs.legacyPackages.${system}.buildGoModule {
-      pname = "dwm-status";
+    statusbar = pkgs.buildGoModule {
+      pname = "statusbar";
       version = "0.0.1";
       src = ./.;
+      subPackages = [
+        "cmd/statusbar"
+        "cmd/wg"
+      ];
       vendorHash = "sha256-KrYjCyPHbQxv+e/FObxwabmgzNmmAxFExNuRxX5rqL0=";
     };
 
-    statusbar = pkgs.makeWrapper {
-      name = "statusbar";
-      program = "${module}/bin/statusbar";
-      buildInputs = [];
-      installTarget = "$out/bin";
+    wgctl = pkgs.buildGoModule {
+      pname = "wgctl";
+      version = "0.0.1";
+      src = ./.;
+      subPackages = [
+        "cmd/wgctl"
+      ];
+      vendorHash = "sha256-KrYjCyPHbQxv+e/FObxwabmgzNmmAxFExNuRxX5rqL0=";
     };
 
-    wgctl = pkgs.makeWrapper {
-      name = "wgctl";
-      program = "${module}/bin/wgctl";
-      buildInputs = [];
-      installTarget = "$out/bin";
-    };
-
-    wg-helper = pkgs.makeWrapper {
-      name = "wg-helper";
-      program = "${module}/bin/wg";
-      buildInputs = [];
-      installTarget = "$out/bin";
-    };
   in {
     packages.default = statusbar;
-    apps.default = {
+    packages.wgctl = wgctl;
+
+    apps.statusbar = {
       type = "app";
       program = "${statusbar}/bin/statusbar";
     };
+
+    apps.wgctl = {
+      type = "app";
+      program = "${wgctl}/bin/wgctl";
+    };
+
     nixosModules.default = {config, lib, pkgs, ...}: {
       options.services.statusbar = {
         enable = lib.mkEnableOption "Enable dwm-statusbar";
@@ -56,12 +58,13 @@
           description = "WireGuard helper service";
           after = [ "network.target" ];
           serviceConfig = {
-            ExecStart = "${wg-helper}/bin/wg";
+            ExecStart = "${statusbar}/bin/wg";
             Restart = "always";
 
              # Where the socket goes (shared for everyone)
             RuntimeDirectory = "wg-helper";
-            RuntimeDirectoryMode = "0777";           Type = "simple";
+            RuntimeDirectoryMode = "0777";           
+            Type = "simple";
 
             DynamicUser = true;
             AmbientCapabilities = [ "CAP_NET_ADMIN" "CAP_NET_RAW" ];
