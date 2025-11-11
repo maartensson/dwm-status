@@ -47,8 +47,8 @@
     };
   }) // {
     nixosModules.default = {config, lib, pkgs, ...}: let 
-      wgctl = nixpkgs.legacyPackages.${pkgs.system}.wgctl;
-      statusbar = nixpkgs.legacyPackages.${pkgs.system}.statusbar;
+      wgctl = self.packages.${pkgs.system}.wgctl;
+      statusbar = self.packages.${pkgs.system}.statusbar;
     in {
       options.services.statusbar = {
         enable = lib.mkEnableOption "Enable dwm-statusbar";
