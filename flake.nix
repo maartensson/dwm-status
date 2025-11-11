@@ -47,7 +47,8 @@
     };
   }) // {
     nixosModules.default = {config, lib, pkgs, ...}: let 
-      pkgs = nixpkgs.legacyPackages.${pkgs.system};
+      wgctl = nixpkgs.legacyPackages.${pkgs.system}.wgctl;
+      statusbar = nixpkgs.legacyPackages.${pkgs.system}.statusbar;
     in {
       options.services.statusbar = {
         enable = lib.mkEnableOption "Enable dwm-statusbar";
@@ -55,13 +56,13 @@
 
       config = lib.mkIf config.services.statusbar.enable {
 
-        environment.systemPackages = [ pkgs.wgctl ];
+        environment.systemPackages = [ wgctl ];
 
         systemd.services.wg-helper = {
           description = "WireGuard helper service";
           after = [ "network.target" ];
           serviceConfig = {
-            ExecStart = "${pkgs.statusbar}/bin/wg";
+            ExecStart = "${statusbar}/bin/wg";
             Restart = "always";
 
              # Where the socket goes (shared for everyone)
@@ -90,7 +91,7 @@
           wantedBy = ["default.target"];
           after = ["graphical-session.target"];
           serviceConfig = {
-            ExecStart = "${pkgs.statusbar}/bin/statusbar";
+            ExecStart = "${statusbar}/bin/statusbar";
             Restart = "always";
             RestartSec = "5s";
             Type = "simple";
