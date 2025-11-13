@@ -61,6 +61,7 @@
         systemd.services.wg-helper = {
           description = "WireGuard helper service";
           after = [ "network.target" ];
+          wantedBy = [ "multi-user.target" ];
           serviceConfig = {
             ExecStart = "${statusbar}/bin/wg";
             Restart = "always";
